@@ -1,8 +1,11 @@
+#![allow(unused_imports)]
+
 extern crate pairing;
 extern crate rand;
 extern crate futures;
 extern crate bit_vec;
 extern crate byteorder;
+extern crate ff;
 
 #[cfg(feature = "multithread")]
 extern crate futures_cpupool;
@@ -15,8 +18,10 @@ pub mod multicore;
 mod multiexp;
 pub mod domain;
 pub mod groth16;
+pub mod progress_bar;
 
-use pairing::{Engine, Field};
+use pairing::{Engine};
+use ff::Field;
 
 use std::ops::{Add, Sub};
 use std::fmt;
@@ -89,7 +94,7 @@ impl<E: Engine> Add<(E::Fr, Variable)> for LinearCombination<E> {
     }
 }
 
-impl<E: Engine> Sub<(E::Fr, Variable)> for LinearCombination<E> {
+impl<E: Engine> Sub<(E::Fr, Variable)> for LinearCombination<E> {    
     type Output = LinearCombination<E>;
 
     fn sub(self, (mut coeff, var): (E::Fr, Variable)) -> LinearCombination<E> {
@@ -424,5 +429,22 @@ impl<'cs, E: Engine, CS: ConstraintSystem<E>> ConstraintSystem<E> for &'cs mut C
     fn get_root(&mut self) -> &mut Self::Root
     {
         (**self).get_root()
+    }
+}
+
+static mut VERBOSE_SWITCH: i8 = -1;
+
+use std::str::FromStr;
+use std::env;
+
+fn verbose_flag() -> bool {
+    unsafe {
+        if VERBOSE_SWITCH < 0 {
+            VERBOSE_SWITCH = FromStr::from_str(&env::var("BELLMAN_VERBOSE").unwrap_or(String::new())).unwrap_or(1);
+        }
+        match VERBOSE_SWITCH {
+            1 => true,
+            _ => false,
+        }
     }
 }

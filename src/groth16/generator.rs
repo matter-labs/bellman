@@ -1,14 +1,23 @@
+extern crate time;
+
+use super::super::verbose_flag;
+
+use self::time::PreciseTime;
+
 use rand::Rng;
 
 use std::sync::Arc;
 
 use pairing::{
     Engine,
-    PrimeField,
-    Field,
     Wnaf,
     CurveProjective,
     CurveAffine
+};
+
+use ff::{    
+    PrimeField,
+    Field
 };
 
 use super::{
@@ -182,6 +191,8 @@ pub fn generate_parameters<E, C>(
 ) -> Result<Parameters<E>, SynthesisError>
     where E: Engine, C: Circuit<E>
 {
+    let verbose = verbose_flag();
+
     let mut assembly = KeypairAssembly {
         num_inputs: 0,
         num_aux: 0,
@@ -210,6 +221,7 @@ pub fn generate_parameters<E, C>(
         );
     }
 
+    if verbose {eprintln!("Making {} powers of tau", assembly.num_constraints)};
     // Create bases for blind evaluation of polynomials at tau
     let powers_of_tau = vec![Scalar::<E>(E::Fr::zero()); assembly.num_constraints];
     let mut powers_of_tau = EvaluationDomain::from_coeffs(powers_of_tau)?;
@@ -242,6 +254,8 @@ pub fn generate_parameters<E, C>(
     let mut h = vec![E::G1::zero(); powers_of_tau.as_ref().len() - 1];
     {
         // Compute powers of tau
+        if verbose {eprintln!("computing powers of tau...")};
+        let start = PreciseTime::now();
         {
             let powers_of_tau = powers_of_tau.as_mut();
             worker.scope(powers_of_tau.len(), |scope, chunk| {
@@ -258,17 +272,19 @@ pub fn generate_parameters<E, C>(
                 }
             });
         }
+        if verbose {eprintln!("powers of tau stage 1 done in {} s", start.to(PreciseTime::now()).num_milliseconds() as f64 / 1000.0);};
 
         // coeff = t(x) / delta
         let mut coeff = powers_of_tau.z(&tau);
         coeff.mul_assign(&delta_inverse);
 
+        if verbose {eprintln!("computing the H query with multiple threads...")};
+        let start = PreciseTime::now();
         // Compute the H query with multiple threads
         worker.scope(h.len(), |scope, chunk| {
             for (h, p) in h.chunks_mut(chunk).zip(powers_of_tau.as_ref().chunks(chunk))
             {
                 let mut g1_wnaf = g1_wnaf.shared();
-
                 scope.spawn(move || {
                     // Set values of the H query to g1^{(tau^i * t(tau)) / delta}
                     for (h, p) in h.iter_mut().zip(p.iter())
@@ -286,17 +302,26 @@ pub fn generate_parameters<E, C>(
                 });
             }
         });
+        if verbose {eprintln!("computing the H query done in {} s", start.to(PreciseTime::now()).num_milliseconds() as f64 / 1000.0);};
     }
+
+    if verbose {eprintln!("using inverse FFT to convert powers of tau to Lagrange coefficients...")};
+    let start = PreciseTime::now();
 
     // Use inverse FFT to convert powers of tau to Lagrange coefficients
     powers_of_tau.ifft(&worker);
     let powers_of_tau = powers_of_tau.into_coeffs();
+
+    if verbose {eprintln!("powers of tau stage 2 done in {} s", start.to(PreciseTime::now()).num_milliseconds() as f64 / 1000.0)};
 
     let mut a = vec![E::G1::zero(); assembly.num_inputs + assembly.num_aux];
     let mut b_g1 = vec![E::G1::zero(); assembly.num_inputs + assembly.num_aux];
     let mut b_g2 = vec![E::G2::zero(); assembly.num_inputs + assembly.num_aux];
     let mut ic = vec![E::G1::zero(); assembly.num_inputs];
     let mut l = vec![E::G1::zero(); assembly.num_aux];
+
+    if verbose {eprintln!("evaluating polynomials...")};
+    let start = PreciseTime::now();
 
     fn eval<E: Engine>(
         // wNAF window tables
@@ -327,6 +352,7 @@ pub fn generate_parameters<E, C>(
         // Worker
         worker: &Worker
     )
+
     {
         // Sanity check
         assert_eq!(a.len(), at.len());
@@ -408,7 +434,7 @@ pub fn generate_parameters<E, C>(
                     E::G2::batch_normalization(b_g2);
                     E::G1::batch_normalization(ext);
                 });
-            }
+            };
         });
     }
 
@@ -448,6 +474,8 @@ pub fn generate_parameters<E, C>(
         &worker
     );
 
+    if verbose {eprintln!("evaluating polynomials done in {} s", start.to(PreciseTime::now()).num_milliseconds() as f64 / 1000.0);};
+
     // Don't allow any elements be unconstrained, so that
     // the L query is always fully dense.
     for e in l.iter() {
@@ -468,6 +496,8 @@ pub fn generate_parameters<E, C>(
         delta_g2: g2.mul(delta).into_affine(),
         ic: ic.into_iter().map(|e| e.into_affine()).collect()
     };
+
+    println!("Has generated {} points", a.len());
 
     Ok(Parameters {
         vk: vk,

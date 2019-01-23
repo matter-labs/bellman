@@ -1,22 +1,25 @@
 [package]
-authors = ["Sean Bowe <ewillbefull@gmail.com>"]
+authors = ["Sean Bowe <ewillbefull@gmail.com>", "Alex Vlasov <alex.m.vlasov@gmail.com>", "Alex Gluchowski <alex@gluchowski.net"]
 description = "zk-SNARK library"
-documentation = "https://github.com/ebfull/bellman"
-homepage = "https://github.com/ebfull/bellman"
+documentation = "https://github.com/matterinc/bellman"
+homepage = "https://github.com/matterinc/bellman"
 license = "MIT/Apache-2.0"
 name = "bellman"
-repository = "https://github.com/ebfull/bellman"
-version = "0.1.0"
+repository = "https://github.com/matterinc/bellman"
+version = "0.1.2"
 
 [dependencies]
 rand = "0.4"
 bit-vec = "0.4.4"
 futures = "0.1"
-pairing = "0.14"
+pairing = { git = 'https://github.com/matterinc/pairing' }
+ff = { git = 'https://github.com/matterinc/ff', features = ["derive"] }
 byteorder = "1"
 futures-cpupool = { version =  "0.1", optional = true }
 num_cpus = { version =  "1", optional = true }
 crossbeam = { version =  "0.3", optional = true }
+pbr = "1.0.1"
+time = "0.1"
 
 [features]
 default = ["multithread"]
