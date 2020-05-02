@@ -1,17 +1,11 @@
-use crate::pairing::{
-    Engine,
-    CurveAffine,
-    EncodedPoint
-};
+use crate::pairing::{CurveAffine, EncodedPoint, Engine};
 
-use crate::{
-    SynthesisError
-};
+use crate::SynthesisError;
 
 use crate::source::SourceBuilder;
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
 use std::sync::Arc;
-use byteorder::{BigEndian, WriteBytesExt, ReadBytesExt};
 
 #[cfg(test)]
 mod tests;
@@ -28,23 +22,17 @@ pub use self::generator::*;
 pub struct Proof<E: Engine> {
     pub a: E::G1Affine,
     pub b: E::G2Affine,
-    pub c: E::G1Affine
+    pub c: E::G1Affine,
 }
 
 impl<E: Engine> PartialEq for Proof<E> {
     fn eq(&self, other: &Self) -> bool {
-        self.a == other.a &&
-        self.b == other.b &&
-        self.c == other.c
+        self.a == other.a && self.b == other.b && self.c == other.c
     }
 }
 
 impl<E: Engine> Proof<E> {
-    pub fn write<W: Write>(
-        &self,
-        mut writer: W
-    ) -> io::Result<()>
-    {
+    pub fn write<W: Write>(&self, mut writer: W) -> io::Result<()> {
         writer.write_all(self.a.into_compressed().as_ref())?;
         writer.write_all(self.b.into_compressed().as_ref())?;
         writer.write_all(self.c.into_compressed().as_ref())?;
@@ -52,48 +40,56 @@ impl<E: Engine> Proof<E> {
         Ok(())
     }
 
-    pub fn read<R: Read>(
-        mut reader: R
-    ) -> io::Result<Self>
-    {
+    pub fn read<R: Read>(mut reader: R) -> io::Result<Self> {
         let mut g1_repr = <E::G1Affine as CurveAffine>::Compressed::empty();
         let mut g2_repr = <E::G2Affine as CurveAffine>::Compressed::empty();
 
         reader.read_exact(g1_repr.as_mut())?;
         let a = g1_repr
-                .into_affine()
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
-                .and_then(|e| if e.is_zero() {
-                    Err(io::Error::new(io::ErrorKind::InvalidData, "point at infinity"))
+            .into_affine()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+            .and_then(|e| {
+                if e.is_zero() {
+                    Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "point at infinity",
+                    ))
                 } else {
                     Ok(e)
-                })?;
+                }
+            })?;
 
         reader.read_exact(g2_repr.as_mut())?;
         let b = g2_repr
-                .into_affine()
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
-                .and_then(|e| if e.is_zero() {
-                    Err(io::Error::new(io::ErrorKind::InvalidData, "point at infinity"))
+            .into_affine()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+            .and_then(|e| {
+                if e.is_zero() {
+                    Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "point at infinity",
+                    ))
                 } else {
                     Ok(e)
-                })?;
+                }
+            })?;
 
         reader.read_exact(g1_repr.as_mut())?;
         let c = g1_repr
-                .into_affine()
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
-                .and_then(|e| if e.is_zero() {
-                    Err(io::Error::new(io::ErrorKind::InvalidData, "point at infinity"))
+            .into_affine()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+            .and_then(|e| {
+                if e.is_zero() {
+                    Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "point at infinity",
+                    ))
                 } else {
                     Ok(e)
-                })?;
+                }
+            })?;
 
-        Ok(Proof {
-            a: a,
-            b: b,
-            c: c
-        })
+        Ok(Proof { a: a, b: b, c: c })
     }
 }
 
@@ -118,26 +114,22 @@ pub struct VerifyingKey<E: Engine> {
     // for all public inputs. Because all public inputs have a dummy constraint,
     // this is the same size as the number of inputs, and never contains points
     // at infinity.
-    pub ic: Vec<E::G1Affine>
+    pub ic: Vec<E::G1Affine>,
 }
 
 impl<E: Engine> PartialEq for VerifyingKey<E> {
     fn eq(&self, other: &Self) -> bool {
-        self.h_g2 == other.h_g2 &&
-        self.alpha_g1 == other.alpha_g1 &&
-        self.beta_g2 == other.beta_g2 &&
-        self.gamma_g1 == other.gamma_g1 &&
-        self.gamma_g2 == other.gamma_g2 &&
-        self.ic == other.ic
+        self.h_g2 == other.h_g2
+            && self.alpha_g1 == other.alpha_g1
+            && self.beta_g2 == other.beta_g2
+            && self.gamma_g1 == other.gamma_g1
+            && self.gamma_g2 == other.gamma_g2
+            && self.ic == other.ic
     }
 }
 
 impl<E: Engine> VerifyingKey<E> {
-    pub fn write<W: Write>(
-        &self,
-        mut writer: W
-    ) -> io::Result<()>
-    {
+    pub fn write<W: Write>(&self, mut writer: W) -> io::Result<()> {
         writer.write_all(self.h_g2.into_uncompressed().as_ref())?;
         writer.write_all(self.alpha_g1.into_uncompressed().as_ref())?;
         writer.write_all(self.beta_g2.into_uncompressed().as_ref())?;
@@ -151,27 +143,34 @@ impl<E: Engine> VerifyingKey<E> {
         Ok(())
     }
 
-    pub fn read<R: Read>(
-        mut reader: R
-    ) -> io::Result<Self>
-    {
+    pub fn read<R: Read>(mut reader: R) -> io::Result<Self> {
         let mut g1_repr = <E::G1Affine as CurveAffine>::Uncompressed::empty();
         let mut g2_repr = <E::G2Affine as CurveAffine>::Uncompressed::empty();
 
         reader.read_exact(g2_repr.as_mut())?;
-        let h_h2 = g2_repr.into_affine().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let h_h2 = g2_repr
+            .into_affine()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         reader.read_exact(g1_repr.as_mut())?;
-        let alpha_g1 = g1_repr.into_affine().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let alpha_g1 = g1_repr
+            .into_affine()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         reader.read_exact(g2_repr.as_mut())?;
-        let beta_g2 = g2_repr.into_affine().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let beta_g2 = g2_repr
+            .into_affine()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         reader.read_exact(g1_repr.as_mut())?;
-        let gamma_g1 = g1_repr.into_affine().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let gamma_g1 = g1_repr
+            .into_affine()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         reader.read_exact(g2_repr.as_mut())?;
-        let gamma_g2 = g2_repr.into_affine().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let gamma_g2 = g2_repr
+            .into_affine()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         let ic_len = reader.read_u32::<BigEndian>()? as usize;
 
@@ -180,13 +179,18 @@ impl<E: Engine> VerifyingKey<E> {
         for _ in 0..ic_len {
             reader.read_exact(g1_repr.as_mut())?;
             let g1 = g1_repr
-                     .into_affine()
-                     .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
-                     .and_then(|e| if e.is_zero() {
-                         Err(io::Error::new(io::ErrorKind::InvalidData, "point at infinity"))
-                     } else {
-                         Ok(e)
-                     })?;
+                .into_affine()
+                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+                .and_then(|e| {
+                    if e.is_zero() {
+                        Err(io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            "point at infinity",
+                        ))
+                    } else {
+                        Ok(e)
+                    }
+                })?;
 
             ic.push(g1);
         }
@@ -197,7 +201,7 @@ impl<E: Engine> VerifyingKey<E> {
             beta_g2: beta_g2,
             gamma_g1: gamma_g1,
             gamma_g2: gamma_g2,
-            ic: ic
+            ic: ic,
         })
     }
 }
@@ -222,16 +226,16 @@ pub struct Parameters<E: Engine> {
 
 impl<E: Engine> PartialEq for Parameters<E> {
     fn eq(&self, other: &Self) -> bool {
-        self.vk == other.vk &&
-        self.a_g1 == other.a_g1 &&
-        self.a_g2 == other.a_g2 &&
-        self.c_1_g1 == other.c_1_g1 &&
-        self.c_2_g1 == other.c_2_g1 &&
-        self.gamma_z == other.gamma_z &&
-        self.gamma_z_g2 == other.gamma_z_g2 &&
-        self.ab_gamma_z_g1 == other.ab_gamma_z_g1 &&
-        self.gamma2_z2_g1 == other.gamma2_z2_g1 &&
-        self.gamma2_z_t == other.gamma2_z_t
+        self.vk == other.vk
+            && self.a_g1 == other.a_g1
+            && self.a_g2 == other.a_g2
+            && self.c_1_g1 == other.c_1_g1
+            && self.c_2_g1 == other.c_2_g1
+            && self.gamma_z == other.gamma_z
+            && self.gamma_z_g2 == other.gamma_z_g2
+            && self.ab_gamma_z_g1 == other.ab_gamma_z_g1
+            && self.gamma2_z2_g1 == other.gamma2_z2_g1
+            && self.gamma2_z_t == other.gamma2_z_t
     }
 }
 

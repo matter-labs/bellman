@@ -4,68 +4,39 @@ use rand::Rng;
 
 use std::sync::Arc;
 
-use crate::pairing::{
-    Engine,
-    Wnaf,
-    CurveProjective,
-    CurveAffine
-};
+use crate::pairing::{CurveAffine, CurveProjective, Engine, Wnaf};
 
-use crate::pairing::ff::{    
-    PrimeField,
-    Field
-};
+use crate::pairing::ff::{Field, PrimeField};
 
-use super::{
-    Parameters,
-    VerifyingKey
-};
+use super::{Parameters, VerifyingKey};
 
-use crate::{
-    SynthesisError,
-    Circuit,
-    ConstraintSystem,
-    LinearCombination,
-    Variable,
-    Index
-};
+use crate::{Circuit, ConstraintSystem, Index, LinearCombination, SynthesisError, Variable};
 
-use crate::domain::{
-    EvaluationDomain,
-    Scalar
-};
+use crate::domain::{EvaluationDomain, Scalar};
 
-use crate::worker::{
-    Worker
-};
+use crate::worker::Worker;
 
-// /// Generates a random common reference string for
-// /// a circuit.
-// pub fn generate_random_parameters<E, C, R>(
-//     circuit: C,
-//     rng: &mut R
-// ) -> Result<Parameters<E>, SynthesisError>
-//     where E: Engine, C: Circuit<E>, R: Rng
-// {
-//     let g1 = rng.gen();
-//     let g2 = rng.gen();
-//     let alpha = rng.gen();
-//     let beta = rng.gen();
-//     let gamma = rng.gen();
-//     let delta = rng.gen();
-//     let tau = rng.gen();
+/// Generates a random common reference string for
+/// a circuit.
+pub fn generate_random_parameters<E, C, R>(
+    circuit: C,
+    rng: &mut R,
+) -> Result<Parameters<E>, SynthesisError>
+where
+    E: Engine,
+    C: Circuit<E>,
+    R: Rng,
+{
+    let g1 = rng.gen();
+    let g2 = rng.gen();
+    let alpha = rng.gen();
+    let beta = rng.gen();
+    let gamma = rng.gen();
+    let delta = rng.gen();
+    let tau = rng.gen();
 
-//     generate_parameters::<E, C>(
-//         circuit,
-//         g1,
-//         g2,
-//         alpha,
-//         beta,
-//         gamma,
-//         delta,
-//         tau
-//     )
-// }
+    generate_parameters::<E, C>(circuit, g1, g2, alpha, beta, gamma, delta, tau)
+}
 
 /// This is our assembly structure that we'll use to synthesize the
 /// circuit into a SAP. Square arithmetic problem is different from QAP in a form:
@@ -79,18 +50,17 @@ struct KeypairAssembly<E: Engine> {
     at_inputs: Vec<Vec<(E::Fr, usize)>>,
     ct_inputs: Vec<Vec<(E::Fr, usize)>>,
     at_aux: Vec<Vec<(E::Fr, usize)>>,
-    ct_aux: Vec<Vec<(E::Fr, usize)>>
+    ct_aux: Vec<Vec<(E::Fr, usize)>>,
 }
 
 impl<E: Engine> ConstraintSystem<E> for KeypairAssembly<E> {
     type Root = Self;
 
-    fn alloc<F, A, AR>(
-        &mut self,
-        _: A,
-        _: F
-    ) -> Result<Variable, SynthesisError>
-        where F: FnOnce() -> Result<E::Fr, SynthesisError>, A: FnOnce() -> AR, AR: Into<String>
+    fn alloc<F, A, AR>(&mut self, _: A, _: F) -> Result<Variable, SynthesisError>
+    where
+        F: FnOnce() -> Result<E::Fr, SynthesisError>,
+        A: FnOnce() -> AR,
+        AR: Into<String>,
     {
         // There is no assignment, so we don't even invoke the
         // function for obtaining one.
@@ -106,12 +76,11 @@ impl<E: Engine> ConstraintSystem<E> for KeypairAssembly<E> {
         Ok(Variable(Index::Aux(index)))
     }
 
-    fn alloc_input<F, A, AR>(
-        &mut self,
-        _: A,
-        _: F
-    ) -> Result<Variable, SynthesisError>
-        where F: FnOnce() -> Result<E::Fr, SynthesisError>, A: FnOnce() -> AR, AR: Into<String>
+    fn alloc_input<F, A, AR>(&mut self, _: A, _: F) -> Result<Variable, SynthesisError>
+    where
+        F: FnOnce() -> Result<E::Fr, SynthesisError>,
+        A: FnOnce() -> AR,
+        AR: Into<String>,
     {
         // There is no assignment, so we don't even invoke the
         // function for obtaining one.
@@ -125,17 +94,13 @@ impl<E: Engine> ConstraintSystem<E> for KeypairAssembly<E> {
         Ok(Variable(Index::Input(index)))
     }
 
-    fn enforce<A, AR, LA, LB, LC>(
-        &mut self,
-        _: A,
-        a: LA,
-        b: LB,
-        c: LC
-    )
-        where A: FnOnce() -> AR, AR: Into<String>,
-              LA: FnOnce(LinearCombination<E>) -> LinearCombination<E>,
-              LB: FnOnce(LinearCombination<E>) -> LinearCombination<E>,
-              LC: FnOnce(LinearCombination<E>) -> LinearCombination<E>
+    fn enforce<A, AR, LA, LB, LC>(&mut self, _: A, a: LA, b: LB, c: LC)
+    where
+        A: FnOnce() -> AR,
+        AR: Into<String>,
+        LA: FnOnce(LinearCombination<E>) -> LinearCombination<E>,
+        LB: FnOnce(LinearCombination<E>) -> LinearCombination<E>,
+        LC: FnOnce(LinearCombination<E>) -> LinearCombination<E>,
     {
         use std::ops::{Add, Sub};
 
@@ -144,9 +109,7 @@ impl<E: Engine> ConstraintSystem<E> for KeypairAssembly<E> {
         // <a - b,x> * <a - b,x> = y
         // <a + b,x> * <a + b,x> = 4*<c,x> + y
 
-        fn quadruple<E: Engine>(
-            coeff: E::Fr
-        ) -> E::Fr {
+        fn quadruple<E: Engine>(coeff: E::Fr) -> E::Fr {
             let mut tmp = coeff;
             tmp.double();
             tmp.double();
@@ -158,23 +121,21 @@ impl<E: Engine> ConstraintSystem<E> for KeypairAssembly<E> {
             l: LinearCombination<E>,
             inputs: &mut [Vec<(E::Fr, usize)>],
             aux: &mut [Vec<(E::Fr, usize)>],
-            this_constraint: usize
-        )
-        {
+            this_constraint: usize,
+        ) {
             for (index, coeff) in l.0 {
                 match index {
                     Variable(Index::Input(id)) => inputs[id].push((coeff, this_constraint)),
-                    Variable(Index::Aux(id)) => aux[id].push((coeff, this_constraint))
+                    Variable(Index::Aux(id)) => aux[id].push((coeff, this_constraint)),
                 }
             }
         }
 
         // <a - b,x> * <a - b,x> = x_i
         let i = self.num_constraints;
-        let y = self.alloc(
-            || format!("SAP reduction y_{}", i),
-            || Ok(E::Fr::one())
-        ).expect("must allocate SAP reduction variable");
+        let y = self
+            .alloc(|| format!("SAP reduction y_{}", i), || Ok(E::Fr::one()))
+            .expect("must allocate SAP reduction variable");
         self.num_r1cs_aux -= 1;
 
         let lc_a = a(LinearCombination::zero());
@@ -186,8 +147,18 @@ impl<E: Engine> ConstraintSystem<E> for KeypairAssembly<E> {
         let mut lc_y: LinearCombination<E> = LinearCombination::zero();
         lc_y = lc_y.add(y);
 
-        eval(lc_a_minus_b, &mut self.at_inputs, &mut self.at_aux, self.num_constraints);
-        eval(lc_y, &mut self.ct_inputs, &mut self.ct_aux, self.num_constraints);
+        eval(
+            lc_a_minus_b,
+            &mut self.at_inputs,
+            &mut self.at_aux,
+            self.num_constraints,
+        );
+        eval(
+            lc_y,
+            &mut self.ct_inputs,
+            &mut self.ct_aux,
+            self.num_constraints,
+        );
 
         self.num_constraints += 1;
 
@@ -201,8 +172,18 @@ impl<E: Engine> ConstraintSystem<E> for KeypairAssembly<E> {
         }
         lc_c_quadrupled = lc_c_quadrupled.add(y);
 
-        eval(lc_a_plus_b, &mut self.at_inputs, &mut self.at_aux, self.num_constraints);
-        eval(lc_c_quadrupled, &mut self.ct_inputs, &mut self.ct_aux, self.num_constraints);
+        eval(
+            lc_a_plus_b,
+            &mut self.at_inputs,
+            &mut self.at_aux,
+            self.num_constraints,
+        );
+        eval(
+            lc_c_quadrupled,
+            &mut self.ct_inputs,
+            &mut self.ct_aux,
+            self.num_constraints,
+        );
 
         self.num_constraints += 1;
 
@@ -210,13 +191,14 @@ impl<E: Engine> ConstraintSystem<E> for KeypairAssembly<E> {
     }
 
     fn push_namespace<NR, N>(&mut self, _: N)
-        where NR: Into<String>, N: FnOnce() -> NR
+    where
+        NR: Into<String>,
+        N: FnOnce() -> NR,
     {
         // Do nothing; we don't care about namespaces in this context.
     }
 
-    fn pop_namespace(&mut self)
-    {
+    fn pop_namespace(&mut self) {
         // Do nothing; we don't care about namespaces in this context.
     }
 
@@ -234,10 +216,12 @@ pub fn generate_parameters<E, C>(
     beta: E::Fr,
     gamma: E::Fr,
     // delta: E::Fr,
-    tau: E::Fr
+    tau: E::Fr,
 ) -> Result<(), SynthesisError>
 // Result<Parameters<E>, SynthesisError>
-    where E: Engine, C: Circuit<E>
+where
+    E: Engine,
+    C: Circuit<E>,
 {
     let verbose = verbose_flag();
 
@@ -250,7 +234,7 @@ pub fn generate_parameters<E, C>(
         at_inputs: vec![],
         ct_inputs: vec![],
         at_aux: vec![],
-        ct_aux: vec![]
+        ct_aux: vec![],
     };
 
     // Allocate the "one" input variable
@@ -270,21 +254,25 @@ pub fn generate_parameters<E, C>(
             l: LinearCombination<E>,
             inputs: &mut [Vec<(E::Fr, usize)>],
             aux: &mut [Vec<(E::Fr, usize)>],
-            this_constraint: usize
-        )
-        {
+            this_constraint: usize,
+        ) {
             for (index, coeff) in l.0 {
                 match index {
                     Variable(Index::Input(id)) => inputs[id].push((coeff, this_constraint)),
-                    Variable(Index::Aux(id)) => aux[id].push((coeff, this_constraint))
+                    Variable(Index::Aux(id)) => aux[id].push((coeff, this_constraint)),
                 }
             }
         }
 
         let mut lc_input_0_a: LinearCombination<E> = LinearCombination::zero();
         lc_input_0_a = lc_input_0_a.add(input_0.clone());
-        eval_lc(lc_input_0_a, &mut assembly.at_inputs, &mut assembly.at_aux, assembly.num_constraints);
-        
+        eval_lc(
+            lc_input_0_a,
+            &mut assembly.at_inputs,
+            &mut assembly.at_aux,
+            assembly.num_constraints,
+        );
+
         assembly.num_constraints += 1;
     }
 
@@ -295,7 +283,8 @@ pub fn generate_parameters<E, C>(
     // 1 is actually input number 0 (identity)
 
     for i in 1..assembly.num_inputs {
-        assembly.enforce(|| "",
+        assembly.enforce(
+            || "",
             |lc| lc + Variable(Index::Input(i)),
             |lc| lc + Variable(Index::Input(0)),
             |lc| lc + Variable(Index::Input(i)),
@@ -303,21 +292,27 @@ pub fn generate_parameters<E, C>(
     }
 
     // check that each input generates 2 constraints
-    assert_eq!(num_inputs_without_identity * 2 +
-            num_constraints_before_inputs_constraining,
-            assembly.num_constraints,
-            "each input must produce two extra constraints");
+    assert_eq!(
+        num_inputs_without_identity * 2 + num_constraints_before_inputs_constraining,
+        assembly.num_constraints,
+        "each input must produce two extra constraints"
+    );
     // and that it creates one extra variable
-    assert_eq!(num_inputs_without_identity +
-            num_aux_before_inputs_constraining, 
-            assembly.num_aux,
-            "each input must generate an extra variable");
+    assert_eq!(
+        num_inputs_without_identity + num_aux_before_inputs_constraining,
+        assembly.num_aux,
+        "each input must generate an extra variable"
+    );
 
-    assert_eq!(assembly.num_inputs + assembly.num_r1cs_constraints + assembly.num_r1cs_aux,
-            assembly.num_inputs + assembly.num_aux,
-            "each constraint in principle adds one variable");
+    assert_eq!(
+        assembly.num_inputs + assembly.num_r1cs_constraints + assembly.num_r1cs_aux,
+        assembly.num_inputs + assembly.num_aux,
+        "each constraint in principle adds one variable"
+    );
 
-    if verbose {eprintln!("Constraint system size is {}", assembly.num_constraints)};
+    if verbose {
+        eprintln!("Constraint system size is {}", assembly.num_constraints)
+    };
     // Create bases for blind evaluation of polynomials at tau
     let powers_of_tau = vec![Scalar::<E>(E::Fr::zero()); assembly.num_constraints];
     let mut domain = EvaluationDomain::from_coeffs(powers_of_tau)?;
@@ -325,9 +320,10 @@ pub fn generate_parameters<E, C>(
     // Compute G1 window table
     let mut g1_wnaf = Wnaf::new();
     let g1_wnaf = g1_wnaf.base(g1, {
-        2*(assembly.num_inputs + assembly.num_r1cs_constraints + assembly.num_r1cs_aux)
-        + assembly.num_r1cs_constraints + assembly.num_r1cs_aux
-        + 2*(assembly.num_inputs + assembly.num_r1cs_constraints)
+        2 * (assembly.num_inputs + assembly.num_r1cs_constraints + assembly.num_r1cs_aux)
+            + assembly.num_r1cs_constraints
+            + assembly.num_r1cs_aux
+            + 2 * (assembly.num_inputs + assembly.num_r1cs_constraints)
     });
 
     // Compute gamma*G2 window table
@@ -336,7 +332,7 @@ pub fn generate_parameters<E, C>(
     let g2_wnaf = g2_wnaf.base(g2, {
         // B query
         assembly.num_inputs + assembly.num_aux
-        // alternatively expressed as 
+        // alternatively expressed as
         // assembly.num_inputs + assembly.num_r1cs_constraints + assembly.num_r1cs_aux
     });
 
@@ -374,7 +370,9 @@ pub fn generate_parameters<E, C>(
 
     let domain_length = domain.as_ref().len();
 
-    if verbose {eprintln!("Domain length is {} ", domain_length)};
+    if verbose {
+        eprintln!("Domain length is {} ", domain_length)
+    };
 
     // G1^{gamma^2 * Z(t) * t^i} for 0 <= i < 2^m - 1 for 2^m domains
     let mut gamma2_z_t_g1 = vec![E::G1::zero(); domain.as_ref().len() - 1];
@@ -382,17 +380,18 @@ pub fn generate_parameters<E, C>(
 
     {
         // Compute powers of tau
-        if verbose {eprintln!("computing powers of tau...")};
+        if verbose {
+            eprintln!("computing powers of tau...")
+        };
 
         let start = std::time::Instant::now();
 
         {
             let domain = domain.as_mut();
             worker.scope(domain.len(), |scope, chunk| {
-                for (i, subdomain) in domain.chunks_mut(chunk).enumerate()
-                {
+                for (i, subdomain) in domain.chunks_mut(chunk).enumerate() {
                     scope.spawn(move |_| {
-                        let mut current_power = tau.pow(&[(i*chunk) as u64]);
+                        let mut current_power = tau.pow(&[(i * chunk) as u64]);
 
                         for p in subdomain {
                             p.0 = current_power;
@@ -402,28 +401,36 @@ pub fn generate_parameters<E, C>(
                 }
             });
         }
-        if verbose {eprintln!("powers of tau stage 1 done in {} s", start.elapsed().as_millis() as f64 / 1000.0);};
+        if verbose {
+            eprintln!(
+                "powers of tau stage 1 done in {} s",
+                start.elapsed().as_millis() as f64 / 1000.0
+            );
+        };
 
         // z_at_tau = t(x)
         z_at_tau = domain.z(&tau);
-        
+
         let mut gamma2_z_t = z_at_tau;
         gamma2_z_t.mul_assign(&gamma);
         gamma2_z_t.mul_assign(&gamma);
 
-        if verbose {eprintln!("computing the `G1^(gamma^2 * Z(t) * t^i)` query with multiple threads...")};
+        if verbose {
+            eprintln!("computing the `G1^(gamma^2 * Z(t) * t^i)` query with multiple threads...")
+        };
 
         let start = std::time::Instant::now();
 
         // Compute the H query with multiple threads
         worker.scope(gamma2_z_t_g1.len(), |scope, chunk| {
-            for (gamma2_z_t_g1, p) in gamma2_z_t_g1.chunks_mut(chunk).zip(domain.as_ref().chunks(chunk))
+            for (gamma2_z_t_g1, p) in gamma2_z_t_g1
+                .chunks_mut(chunk)
+                .zip(domain.as_ref().chunks(chunk))
             {
                 let mut g1_wnaf = g1_wnaf.shared();
                 scope.spawn(move |_| {
                     // Set values of the H query to g1^{(tau^i * t(tau)) / delta}
-                    for (gamma2_z_t_g1, p) in gamma2_z_t_g1.iter_mut().zip(p.iter())
-                    {
+                    for (gamma2_z_t_g1, p) in gamma2_z_t_g1.iter_mut().zip(p.iter()) {
                         // Compute final exponent
                         let mut exp = p.0;
                         exp.mul_assign(&gamma2_z_t);
@@ -437,7 +444,12 @@ pub fn generate_parameters<E, C>(
                 });
             }
         });
-        if verbose {eprintln!("computing the `G1^(gamma^2 * Z(t) * t^i)` query done in {} s", start.elapsed().as_millis() as f64 / 1000.0);};
+        if verbose {
+            eprintln!(
+                "computing the `G1^(gamma^2 * Z(t) * t^i)` query done in {} s",
+                start.elapsed().as_millis() as f64 / 1000.0
+            );
+        };
     }
 
     // G1^{gamma * A_i(t)} for 0 <= i <= num_variables
@@ -474,8 +486,10 @@ pub fn generate_parameters<E, C>(
     // G^{gamma^2 * Z(t) * t^i} for 0 <= i < 2^m - 1 for 2^m domains
     let mut gamma2_z_t = vec![E::G1::zero(); domain.as_ref().len() - 1];
 
-    if verbose {eprintln!("using inverse FFT to convert to intepolation coefficients...")};
-    
+    if verbose {
+        eprintln!("using inverse FFT to convert to intepolation coefficients...")
+    };
+
     let start = std::time::Instant::now();
 
     // Use inverse FFT to convert to intepolation coefficients
@@ -483,9 +497,16 @@ pub fn generate_parameters<E, C>(
     let powers_of_tau = domain.into_coeffs();
     // domain is now a set of scalars
 
-    if verbose {eprintln!("powers of tau evaluation in radix2 domain in {} s", start.elapsed().as_millis() as f64 / 1000.0)};
+    if verbose {
+        eprintln!(
+            "powers of tau evaluation in radix2 domain in {} s",
+            start.elapsed().as_millis() as f64 / 1000.0
+        )
+    };
 
-    if verbose {eprintln!("evaluating polynomials...")};
+    if verbose {
+        eprintln!("evaluating polynomials...")
+    };
     let start = std::time::Instant::now();
 
     // overall strategy:
@@ -524,10 +545,8 @@ pub fn generate_parameters<E, C>(
         z_at_tau: &E::Fr,
 
         // Worker
-        worker: &Worker
-    )
-
-    {
+        worker: &Worker,
+    ) {
         // Sanity check
         assert_eq!(a_g1.len(), at.len());
         assert_eq!(a_g1.len(), ct.len());
@@ -544,29 +563,30 @@ pub fn generate_parameters<E, C>(
 
         // Evaluate polynomials in multiple threads
         worker.scope(a_g1.len(), |scope, chunk| {
-            for (((((a_g1, a_g2), c_1_g1), c_2_g1), at), ct) in a_g1.chunks_mut(chunk)
-                                                               .zip(a_g2.chunks_mut(chunk))
-                                                               .zip(c_1_g1.chunks_mut(chunk))
-                                                               .zip(c_2_g1.chunks_mut(chunk))
-                                                               .zip(at.chunks(chunk))
-                                                               .zip(ct.chunks(chunk))
+            for (((((a_g1, a_g2), c_1_g1), c_2_g1), at), ct) in a_g1
+                .chunks_mut(chunk)
+                .zip(a_g2.chunks_mut(chunk))
+                .zip(c_1_g1.chunks_mut(chunk))
+                .zip(c_2_g1.chunks_mut(chunk))
+                .zip(at.chunks(chunk))
+                .zip(ct.chunks(chunk))
             {
                 let mut g1_wnaf = g1_wnaf.shared();
                 let mut g2_wnaf = g2_wnaf.shared();
 
                 scope.spawn(move |_| {
-                    for (((((a_g1, a_g2), c_1_g1), c_2_g1), at), ct) in a_g1.iter_mut()
-                                                                       .zip(a_g2.iter_mut())
-                                                                       .zip(c_1_g1.iter_mut())
-                                                                       .zip(c_2_g1.iter_mut())
-                                                                       .zip(at.iter())
-                                                                       .zip(ct.iter())
+                    for (((((a_g1, a_g2), c_1_g1), c_2_g1), at), ct) in a_g1
+                        .iter_mut()
+                        .zip(a_g2.iter_mut())
+                        .zip(c_1_g1.iter_mut())
+                        .zip(c_2_g1.iter_mut())
+                        .zip(at.iter())
+                        .zip(ct.iter())
                     {
                         fn eval_at_tau<E: Engine>(
                             powers_of_tau: &[Scalar<E>],
-                            p: &[(E::Fr, usize)]
-                        ) -> E::Fr
-                        {
+                            p: &[(E::Fr, usize)],
+                        ) -> E::Fr {
                             let mut acc = E::Fr::zero();
 
                             for &(ref coeff, index) in p {
@@ -616,7 +636,7 @@ pub fn generate_parameters<E, C>(
                     E::G1::batch_normalization(c_1_g1);
                     E::G1::batch_normalization(c_2_g1);
                 });
-            };
+            }
         });
     }
 
@@ -635,7 +655,7 @@ pub fn generate_parameters<E, C>(
         &beta,
         &gamma,
         &z_at_tau,
-        &worker
+        &worker,
     );
 
     // Evaluate for inputs.
@@ -653,14 +673,19 @@ pub fn generate_parameters<E, C>(
         &beta,
         &gamma,
         &z_at_tau,
-        &worker
+        &worker,
     );
 
     // for _ in 0..assembly.num_inputs {
     //     c_1_g1.remove(0);
     // }
 
-    if verbose {eprintln!("evaluating polynomials done in {} s", start.elapsed().as_millis() as f64 / 1000.0);};
+    if verbose {
+        eprintln!(
+            "evaluating polynomials done in {} s",
+            start.elapsed().as_millis() as f64 / 1000.0
+        );
+    };
 
     // // Don't allow any elements be unconstrained, so that
     // // the L query is always fully dense.

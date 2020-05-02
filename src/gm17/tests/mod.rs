@@ -1,57 +1,49 @@
-use crate::pairing::{
-    Engine
-};
+use crate::pairing::Engine;
 
-use crate::pairing::ff:: {
-    Field,
-    PrimeField,
-};
+use crate::pairing::ff::{Field, PrimeField};
 
 use super::super::tests::dummy_engine::*;
 use super::super::tests::XORDemo;
 
 use std::marker::PhantomData;
 
-use crate::{
-    Circuit,
-    ConstraintSystem,
-    SynthesisError
-};
+use crate::{Circuit, ConstraintSystem, SynthesisError};
 
-use super::{
-    generate_parameters,
-    // prepare_verifying_key,
-    // create_proof,
-    // verify_proof
-};
+use super::generate_parameters;
 
 #[test]
-fn test_gm17_xordemo() {
-    let g1 = Fr::one();
-    let g2 = Fr::one();
-    let alpha = Fr::from_str("48577").unwrap();
-    let beta = Fr::from_str("22580").unwrap();
-    let gamma = Fr::from_str("53332").unwrap();
-    // let delta = Fr::from_str("5481").unwrap();
-    let tau = Fr::from_str("3673").unwrap();
+fn test_xordemo() {
+    // let g1 = Fr::one();
+    // let g2 = Fr::one();
+    // let alpha = Fr::from_str("48577").unwrap();
+    // let beta = Fr::from_str("22580").unwrap();
+    // let gamma = Fr::from_str("53332").unwrap();
+    // // let delta = Fr::from_str("5481").unwrap();
+    // let tau = Fr::from_str("3673").unwrap();
 
-    let params = {
-        let c = XORDemo::<DummyEngine> {
-            a: None,
-            b: None,
-            _marker: PhantomData
-        };
+    // let params = {
+    //     let c = XORDemo::<DummyEngine> {
+    //         a: None,
+    //         b: None,
+    //         _marker: PhantomData
+    //     };
 
-        generate_parameters(
-            c,
-            g1,
-            g2,
-            alpha,
-            beta,
-            gamma,
-            tau
-        ).unwrap()
-    };
+    //     generate_parameters(
+    //         c,
+    //         g1,
+    //         g2,
+    //         alpha,
+    //         beta,
+    //         gamma,
+    //         tau
+    //     ).unwrap()
+    // };
+
+    //
+    //
+    //
+    //
+    //
 
     // // This will synthesize the constraint system:
     // //
