@@ -10,6 +10,8 @@ pub extern crate pairing;
 extern crate rand;
 extern crate bit_vec;
 extern crate byteorder;
+extern crate hwloc2;
+extern crate libc;
 
 pub use pairing::*;
 

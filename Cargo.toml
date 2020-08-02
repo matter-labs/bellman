@@ -16,6 +16,8 @@ crate-type = ["cdylib", "lib", "staticlib"]
 rand = "0.4"
 bit-vec = "0.6"
 cfg-if = "0.1"
+libc = "0.2"
+hwloc2 = "2.2.0"
 
 # pairing = {package = "pairing_ce", path = "../pairing" }
 pairing = {package = "pairing_ce", version = "0.23.*" }
