@@ -54,3 +54,15 @@ Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the Apache-2.0
 license, shall be dual licensed as above, without any additional terms or
 conditions.
+
+### Using thread bind to core
+#### Install hwloc on Linux
+
+```
+$ git clone https://github.com/open-mpi/hwloc.git
+$ cd hwloc
+$ ./autogen.sh
+```
+
+Note that GNU Autoconf >=2.63, Automake >=1.11 and Libtool >=2.2.6 are required
+when building from a Git clone.

@@ -27,6 +27,7 @@ use super::SynthesisError;
 
 use cfg_if;
 
+use hwloc2::{Topology, ObjectType, CpuBindFlags, CpuSet};
 /// This genious piece of code works in the following way:
 /// - choose `c` - the bit length of the region that one thread works on
 /// - make `2^c - 1` buckets and initialize them with `G = infinity` (that's equivalent of zero)
@@ -664,6 +665,57 @@ pub fn dense_multiexp<G: CurveAffine>(
     dense_multiexp_inner(pool, bases, exponents, 0, c, true)
 }
 
+// Get thread id from libc
+fn get_thread_id() -> libc::pthread_t {
+    unsafe { libc::pthread_self() }
+}
+
+// Get core nums
+fn get_core_num(topo: &Arc<std::sync::Mutex<hwloc2::Topology>>) -> usize{
+    let topo_rc = topo.clone();
+    let topo_locked = topo_rc.lock().unwrap();
+    (*topo_locked)
+        .objects_with_type(&ObjectType::Core)
+        .unwrap()
+        .len()
+}
+
+// Load the `CpuSet` for the given core index.
+fn cpuset_for_core(topology: &Topology, idx: usize) -> CpuSet {
+    let cores = (*topology).objects_with_type(&ObjectType::Core).unwrap();
+    match cores.get(idx) {
+        Some(val) => val.cpuset().unwrap(),
+        None => panic!("No Core found with id {}", idx),
+    }
+}
+
+// Bind thread to core
+fn bind_thread(
+    child_topo: &Arc<std::sync::Mutex<hwloc2::Topology>>,
+    idx: usize) {
+    // Get the current thread id and lock the topology to use.
+    let tid = get_thread_id();
+    let mut locked_topo = child_topo.lock().unwrap();
+
+    // Thread binding before explicit set.
+    let before = locked_topo.get_cpubind_for_thread(tid, CpuBindFlags::CPUBIND_THREAD);
+
+    // load the cpuset for the given core index.
+    let mut bind_to = cpuset_for_core(&*locked_topo, idx);
+
+    // Get only one logical processor (in case the core is SMT/hyper-threaded).
+    bind_to.singlify();
+
+    // Set the binding.
+    locked_topo
+        .set_cpubind_for_thread(tid, bind_to, CpuBindFlags::CPUBIND_THREAD)
+        .unwrap();
+
+    // Thread binding after explicit set.
+    let after = locked_topo.get_cpubind_for_thread(tid, CpuBindFlags::CPUBIND_THREAD);
+    println!("Thread {:?}: Before {:?}, After {:?}", tid, before, after);
+}
+
 fn dense_multiexp_inner<G: CurveAffine>(
     pool: &Worker,
     bases: & [G],
@@ -680,11 +732,26 @@ fn dense_multiexp_inner<G: CurveAffine>(
         // let mask = (1u64 << c) - 1u64;
         let this_region = Mutex::new(<G as CurveAffine>::Projective::zero());
         let arc = Arc::new(this_region);
+
+        let topo = Arc::new(Mutex::new(Topology::new().unwrap()));
+
+        // Grab the number of cores.
+        let num_cores = get_core_num(&topo);
+        println!("Found {} cores.", num_cores);
+
         pool.scope(bases.len(), |scope, chunk| {
+            let mut core_idx = 0;
             for (base, exp) in bases.chunks(chunk).zip(exponents.chunks(chunk)) {
                 let this_region_rwlock = arc.clone();
                 // let handle = 
+
+                let child_topo = topo.clone();
+
                 scope.spawn(move |_| {
+
+                    // binding thread to specific core
+                    bind_thread(&child_topo, core_idx % num_cores);
+
                     let mut buckets = vec![<G as CurveAffine>::Projective::zero(); (1 << c) - 1];
                     // Accumulate the result
                     let mut acc = G::Projective::zero();
@@ -733,7 +800,8 @@ fn dense_multiexp_inner<G: CurveAffine>(
 
                     (*guard).add_assign(&acc);
                 });
-        
+
+                core_idx += 1;
             }
         });
 
