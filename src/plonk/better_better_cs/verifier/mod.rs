@@ -179,7 +179,7 @@ pub fn aggregate<E: Engine, C: Circuit<E>, T: Transcript<E::Fr>>(
     {
         let mut gate_setup_polys_commitments_iter = vk.gate_setup_commitments.iter();
         let mut gate_selectors_polys_commitments_iter = vk.gate_selectors_commitments.iter();
-        println!("{:?}",vk.gate_selectors_commitments);
+
         for gate in sorted_gates.iter() {
             let key = PolyIdentifier::GateSelector(gate.name());
             let commitment = *gate_selectors_polys_commitments_iter.next().ok_or(SynthesisError::AssignmentMissing)?;
