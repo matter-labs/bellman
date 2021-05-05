@@ -2500,9 +2500,9 @@ impl<E: Engine, P: PlonkConstraintSystemParams<E>, MG: MainGate<E>, S: Synthesis
     }
 
     pub fn output_gate_selectors(&self, worker: &Worker) -> Result<Vec<Vec<E::Fr>>, SynthesisError> {
-        if self.sorted_gates.len() == 1 {
-            return Ok(vec![]);
-        }
+        // if self.sorted_gates.len() == 1 {
+        //     return Ok(vec![]);
+        // }
 
         let num_gate_selectors = self.sorted_gates.len();
 
@@ -5186,9 +5186,10 @@ mod test {
         use crate::plonk::better_better_cs::verifier::*;
         use crate::plonk::better_better_cs::setup::VerificationKey;
 
-        let mut assembly = SetupAssembly::<Bn256, PlonkCsWidth4WithNextStepParams, Width4MainGateWithDNext>::new();
+        let mut assembly
+            = SetupAssembly::<Bn256, PlonkCsWidth4WithNextStepParams, Width4MainGateWithDNext>::new();
 
-        let circuit = TestCircuit4WithLookups::<Bn256> {
+        let circuit = TestCircuit4::<Bn256> {
             _marker: PhantomData
         };
 
@@ -5203,7 +5204,7 @@ mod test {
 
         let worker = Worker::new();
 
-        let setup = assembly.create_setup::<TestCircuit4WithLookups<Bn256>>(&worker).unwrap();
+        let setup = assembly.create_setup::<TestCircuit4<Bn256>>(&worker).unwrap();
 
         let mut assembly = ProvingAssembly::<Bn256, PlonkCsWidth4WithNextStepParams, Width4MainGateWithDNext>::new();
         circuit.synthesize(&mut assembly).expect("must work");
@@ -5216,7 +5217,7 @@ mod test {
 
         let crs_mons = Crs::<Bn256, CrsForMonomialForm>::crs_42(size, &worker);
 
-        let proof = assembly.create_proof::<TestCircuit4WithLookups<Bn256>, RollingKeccakTranscript<Fr>>(
+        let proof = assembly.create_proof::<TestCircuit4<Bn256>, RollingKeccakTranscript<Fr>>(
             &worker, 
             &setup, 
             &crs_mons, 
@@ -5225,7 +5226,7 @@ mod test {
 
         let vk = VerificationKey::from_setup(&setup, &worker, &crs_mons).unwrap();
 
-        let valid = verify::<Bn256, TestCircuit4WithLookups<Bn256>, RollingKeccakTranscript<Fr>>(
+        let valid = verify::<Bn256, TestCircuit4<Bn256>, RollingKeccakTranscript<Fr>>(
             &vk,
             &proof,
             None,
