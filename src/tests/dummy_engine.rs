@@ -24,7 +24,7 @@ use std::num::Wrapping;
 
 const MODULUS_R: Wrapping<u32> = Wrapping(64513);
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Default, Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Fr(Wrapping<u32>);
 
 impl fmt::Display for Fr {

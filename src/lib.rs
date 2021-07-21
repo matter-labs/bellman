@@ -44,6 +44,8 @@ mod source;
 mod multiexp;
 mod prefetch;
 
+mod multicore2;
+
 #[cfg(test)]
 mod tests;
 
