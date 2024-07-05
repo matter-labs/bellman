@@ -6,7 +6,7 @@ homepage = "https://github.com/matter-labs/bellman"
 license = "MIT/Apache-2.0"
 name = "bellman_ce"
 repository = "https://github.com/matter-labs/bellman"
-version = "0.3.2"
+version = "0.7.0"
 edition = "2018"
 
 [lib]
@@ -22,7 +22,7 @@ byteorder = "1"
 num_cpus = "1"
 serde = {version = "1", features = ["derive", "rc"]}
 
-pairing = {package = "pairing_ce", version = "0.28.*" }
+pairing = {package = "pairing_ce", version = "=0.28.6" }
 # pairing = {package = "pairing_ce", path = "../pairing"}
 
 futures = {package = "futures", version = "0.3", default_features = false, features = ["executor"]}
@@ -33,8 +33,8 @@ tiny-keccak = {version = "1.5", optional = true}
 blake2-rfc = {version = "0.2.18", optional = true}
 blake2s_simd = {version = "0.5"}
 lazy_static = {version = "1", optional = true}
-blake2s_const = {version = "0.6", optional = true, path = "./src/plonk/blake2_const/blake2s/"}
-hex = "*"
+blake2s_const = {version = "=0.7", optional = true, path = "./src/plonk/blake2_const/blake2s/"}
+hex = "0.4.3"
 
 [features]
 default = ["multicore", "plonk"]
