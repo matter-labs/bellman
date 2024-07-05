@@ -1,6 +1,6 @@
 [package]
 name = "blake2s_const"
-version = "0.6.0"
+version = "0.8.0"
 authors = ["Jack O'Connor"]
 description = "a pure Rust BLAKE2s implementation with dynamic SIMD"
 license = "MIT"
