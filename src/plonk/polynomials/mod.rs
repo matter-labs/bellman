@@ -269,6 +269,26 @@ impl<F: PrimeField> Polynomial<F, Coefficients> {
         })
     }
 
+    pub fn from_coeffs_unpadded(mut coeffs: Vec<F>) -> Result<Polynomial<F, Coefficients>, SynthesisError>
+    {
+        let coeffs_len = coeffs.len();
+
+        let domain = Domain::new_for_size(coeffs_len as u64)?;
+        let exp = domain.power_of_two as u32;
+        let m = domain.size as usize;
+        let omega = domain.generator;
+
+        Ok(Polynomial::<F, Coefficients> {
+            coeffs: coeffs,
+            exp: exp,
+            omega: omega,
+            omegainv: omega.inverse().unwrap(),
+            geninv: F::multiplicative_generator().inverse().unwrap(),
+            minv: F::from_str(&format!("{}", m)).unwrap().inverse().unwrap(),
+            _marker: std::marker::PhantomData
+        })
+    }
+
     pub fn from_roots(roots: Vec<F>, worker: &Worker) -> Result<Polynomial<F, Coefficients>, SynthesisError>
     {
 
