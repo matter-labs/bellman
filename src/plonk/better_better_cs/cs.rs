@@ -54,7 +54,7 @@ impl SynthesisMode for SynthesisModeTesting {
 
 pub trait Circuit<E: Engine> {
     type MainGate: MainGate<E>;
-    fn synthesize<CS: ConstraintSystem<E>>(&self, cs: &mut CS) -> Result<(), SynthesisError>;
+    fn synthesize<CS: ConstraintSystem<E> + 'static>(&self, cs: &mut CS) -> Result<(), SynthesisError>;
     fn declare_used_gates() -> Result<Vec<Box<dyn GateInternal<E>>>, SynthesisError> {
         Ok(
             vec![Self::MainGate::default().into_internal()]

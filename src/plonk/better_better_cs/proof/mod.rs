@@ -279,6 +279,53 @@ impl<E: Engine, C: Circuit<E>> Proof<E, C> {
 
         Ok(new)
     }
+
+    pub unsafe fn redefine_circuit<C2: Circuit<E, MainGate = C::MainGate>>(mut self) -> Proof<E, C2> {
+        let mut new = Proof::<E, C2>::empty();
+
+        // it's still possible that lookups are different
+        assert_eq!(C::declare_used_gates().unwrap(), C2::declare_used_gates().unwrap());
+
+        new.n = self.n;
+        new.inputs = std::mem::replace(&mut self.inputs, vec![]);
+        new.state_polys_commitments = std::mem::replace(&mut self.state_polys_commitments, vec![]);
+        new.witness_polys_commitments = std::mem::replace(&mut self.witness_polys_commitments, vec![]);
+        new.copy_permutation_grand_product_commitment = std::mem::replace(&mut self.copy_permutation_grand_product_commitment, E::G1Affine::zero());
+
+        new.lookup_s_poly_commitment = std::mem::replace(&mut self.lookup_s_poly_commitment, None);
+        new.lookup_grand_product_commitment = std::mem::replace(&mut self.lookup_grand_product_commitment, None);
+
+        new.quotient_poly_parts_commitments = std::mem::replace(&mut self.quotient_poly_parts_commitments, vec![]);
+
+        new.state_polys_openings_at_z = std::mem::replace(&mut self.state_polys_openings_at_z, vec![]);
+        new.state_polys_openings_at_dilations = std::mem::replace(&mut self.state_polys_openings_at_dilations, vec![]);
+        new.witness_polys_openings_at_z = std::mem::replace(&mut self.witness_polys_openings_at_z, vec![]);
+        new.witness_polys_openings_at_dilations = std::mem::replace(&mut self.witness_polys_openings_at_dilations, vec![]);
+
+        new.gate_setup_openings_at_z = std::mem::replace(&mut self.gate_setup_openings_at_z, vec![]);
+        new.gate_selectors_openings_at_z = std::mem::replace(&mut self.gate_selectors_openings_at_z, vec![]);
+
+        new.copy_permutation_polys_openings_at_z = std::mem::replace(&mut self.copy_permutation_polys_openings_at_z, vec![]);
+        new.copy_permutation_grand_product_opening_at_z_omega = std::mem::replace(&mut self.copy_permutation_grand_product_opening_at_z_omega, E::Fr::zero());
+
+        new.lookup_s_poly_opening_at_z_omega = std::mem::replace(&mut self.lookup_s_poly_opening_at_z_omega, None);
+        new.lookup_grand_product_opening_at_z_omega = std::mem::replace(&mut self.lookup_grand_product_opening_at_z_omega, None);
+
+        new.lookup_t_poly_opening_at_z = std::mem::replace(&mut self.lookup_t_poly_opening_at_z, None);
+        new.lookup_t_poly_opening_at_z_omega = std::mem::replace(&mut self.lookup_t_poly_opening_at_z_omega, None);
+        
+        new.lookup_selector_poly_opening_at_z = std::mem::replace(&mut self.lookup_selector_poly_opening_at_z, None);
+        new.lookup_table_type_poly_opening_at_z = std::mem::replace(&mut self.lookup_table_type_poly_opening_at_z, None);
+
+        new.quotient_poly_opening_at_z = std::mem::replace(&mut self.quotient_poly_opening_at_z, E::Fr::zero());
+
+        new.linearization_poly_opening_at_z = std::mem::replace(&mut self.linearization_poly_opening_at_z, E::Fr::zero());
+
+        new.opening_proof_at_z = std::mem::replace(&mut self.opening_proof_at_z, E::G1Affine::zero());
+        new.opening_proof_at_z_omega = std::mem::replace(&mut self.opening_proof_at_z_omega, E::G1Affine::zero());
+
+        new
+    }
 }
 
 use super::cs::*;
