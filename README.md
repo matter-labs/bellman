@@ -1,3 +1,7 @@
+> [!WARNING]
+> This crate has been archived. Development has moved to the [zksync-crypto](https://github.com/matter-labs/zksync-crypto) repository.
+> Please use it instead.
+
 # bellman "Community edition"
  
 Originally developed for ZCash, it has diverged now and focuses solely on the [PLONK](https://eprint.iacr.org/2019/953) proof system. Uses our "community edition" pairing for Ethereum's BN256 curve. 
