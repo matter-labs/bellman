@@ -19,3 +19,4 @@ use crate::plonk::fft::cooley_tukey_ntt::*;
 
 pub mod selector_optimized_with_d_next;
 pub mod main_gate_with_d_next;
+pub mod naive_main_gate;

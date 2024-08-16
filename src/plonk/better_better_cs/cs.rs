@@ -720,6 +720,16 @@ pub trait ConstraintSystem<E: Engine> {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct PlonkCsWidth3Params;
+impl<E: Engine> PlonkConstraintSystemParams<E> for PlonkCsWidth3Params {
+    const STATE_WIDTH: usize =  3;
+    const WITNESS_WIDTH: usize = 0;
+    const HAS_WITNESS_POLYNOMIALS: bool = false;
+    const HAS_CUSTOM_GATES: bool =  false;
+    const CAN_ACCESS_NEXT_TRACE_STEP: bool = false;
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PlonkCsWidth4WithNextStepParams;
 impl<E: Engine> PlonkConstraintSystemParams<E> for PlonkCsWidth4WithNextStepParams {
     const STATE_WIDTH: usize =  4;
@@ -2093,7 +2103,7 @@ impl_assembly!{
             non_residues.push(E::Fr::one());
             non_residues.extend(make_non_residues::<E::Fr>(P::STATE_WIDTH - 1));
 
-            assert_eq!(non_residues.len(), 4);
+            assert_eq!(non_residues.len(), P::STATE_WIDTH);
 
             let mut sigmas = vec![];
             for i in 0..P::STATE_WIDTH {
