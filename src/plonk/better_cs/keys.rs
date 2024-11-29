@@ -598,7 +598,7 @@ pub struct Proof<E: Engine, P: PlonkConstraintSystemParams<E>> {
     pub opening_at_z_proof: E::G1Affine,
     pub opening_at_z_omega_proof: E::G1Affine,
 
-    pub(crate) _marker: std::marker::PhantomData<P>,
+    pub _marker: std::marker::PhantomData<P>,
 }
 
 impl<E: Engine, P: PlonkConstraintSystemParams<E>> Proof<E, P> {
@@ -780,7 +780,7 @@ pub struct VerificationKey<E: Engine, P: PlonkConstraintSystemParams<E>> {
 
     pub g2_elements: [E::G2Affine; 2],
 
-    pub(crate) _marker: std::marker::PhantomData<P>,
+    pub _marker: std::marker::PhantomData<P>,
 }
 
 impl<E: Engine, P: PlonkConstraintSystemParams<E>> VerificationKey<E, P> {
