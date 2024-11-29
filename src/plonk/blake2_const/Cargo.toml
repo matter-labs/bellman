@@ -18,12 +18,12 @@ edition = "2018"
 # Note that this root crates never builds itself with no_std. The "std" feature
 # only controls whether blake2b_simd and blake2s_simd build with no_std.
 default = ["std"]
-std = ["blake2b_simd/std", "blake2s_simd/std"]
+std = ["blake2b_simd/std", "blake2s_const/std"]
 
 [dependencies]
 arrayvec = "0.5.0"
 blake2b_simd = { path = "./blake2b", default-features = false }
-blake2s_simd = { path = "./blake2s", default-features = false }
+blake2s_const = { path = "./blake2s", default-features = false }
 blake2-avx2-sneves = { path = "benches/blake2-avx2-sneves", optional = true }
 hex = "0.3.2"
 kangarootwelve = { path = "benches/kangarootwelve", optional = true }
